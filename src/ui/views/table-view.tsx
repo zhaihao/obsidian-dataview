@@ -1,4 +1,4 @@
-import { Literal } from "data-model/value";
+import { Link, Literal } from "data-model/value";
 import { executeTable } from "query/engine";
 import { Query } from "query/query";
 import { asyncTryOrPropagate } from "util/normalize";
@@ -15,11 +15,58 @@ import {
 import { h, Fragment } from "preact";
 import { useContext } from "preact/hooks";
 import { MarkdownRenderChild } from "obsidian";
+import { DateTime } from "luxon";
 
 /** JSX component which returns the result count. */
 function ResultCount(props: { length: number }) {
     const { settings } = useContext(DataviewContext);
-    return settings.showResultCount ? <span class="dataview small-text">{props.length}</span> : <Fragment></Fragment>;
+    return settings.showResultCount ? <span class="dataview small-text">{props.length > 999? '999+':props.length}</span> : <Fragment></Fragment>;
+}
+
+function getLiteralType(testValue:Literal):string {
+    if (typeof testValue === "object") {
+        if (testValue instanceof Link) {
+            return "link";
+          // @ts-ignore
+        }else if(testValue instanceof Array<Literal>) {
+            if(testValue.length > 1) {
+                return "arrayn"
+            } else {
+                return "array1"
+            }
+        }else if(testValue instanceof DateTime) {
+            return "datetime"
+        } else {
+            return "object"
+        }
+    } else {
+        if(typeof testValue==='string') {
+            if (testValue.match('^(\\d+\\.)?(\\d+\\.)?(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)$')) {
+                return "version"
+            }else if(testValue.contains("://")) {
+                return "url"
+            } else if(testValue.match('\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}')){
+                return "datetime"
+            } else {
+                return "string"
+            }
+        } else if(typeof testValue === 'boolean') {
+            return "boolean"
+        } else if(typeof testValue === 'number') {
+            return "number"
+        } else {
+            return "string";
+        }
+    }
+}
+
+function getType(index: number, values: Literal[][]): string {
+    if (values.length > 0) {
+        const testValue = values[0][index];
+        return getLiteralType(testValue)
+    } else {
+        return "string";
+    }
 }
 
 /** Simple table over headings and corresponding values. */
@@ -41,7 +88,7 @@ export function TableGrouping({
                     <tr class="table-view-tr-header">
                         {headings.map((heading, index) => (
                             <th class="table-view-th">
-                                <Markdown sourcePath={sourcePath} content={heading} />
+                                <Markdown sourcePath={sourcePath} content={heading} cls={getType(index,values)} />
                                 {index == 0 && <ResultCount length={values.length} />}
                             </th>
                         ))}
@@ -51,8 +98,19 @@ export function TableGrouping({
                     {values.map(row => (
                         <tr>
                             {row.map(element => (
-                                <td>
-                                    <Lit value={element} sourcePath={sourcePath} />
+                                <td class={getLiteralType(element)}>
+                                    {(() => {
+                                        if(typeof element === 'boolean') {
+                                            if(element) {
+                                                // 使用 字符串，可以排序，使用 checkbox，需要对 sortable 插件写排序函数
+                                                return <span>◉</span>
+                                            } else {
+                                                return <span>○</span>
+                                            }
+                                        } else {
+                                            return <Lit value={element} sourcePath={sourcePath} />
+                                        }
+                                    })()}
                                 </td>
                             ))}
                         </tr>

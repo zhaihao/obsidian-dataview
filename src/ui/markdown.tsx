@@ -15,6 +15,17 @@ import { extractImageDimensions, isImageEmbed } from "util/media";
 export type MarkdownProps = { contents: string; sourcePath: string };
 export type MarkdownContext = { component: Component };
 
+export function hashCode (str:string) {
+    let hash = 0, i, chr;
+    if (str.length === 0) return hash;
+    for (i = 0; i < str.length; i++) {
+        chr   = str.charCodeAt(i);
+        hash  = ((hash << 5) - hash) + chr;
+        hash |= 0;
+    }
+    return Math.abs(hash);
+}
+
 /** Context need to create dataviews. */
 export type DataviewInit = {
     app: App;
@@ -160,7 +171,7 @@ export function RawLit({
             return (
                 <ul class={"dataview dataview-ul dataview-result-list-ul"}>
                     {value.map(subvalue => (
-                        <li class="dataview-result-list-li">
+                        <li class="dataview-result-list-li" data-path={`o-${hashCode(subvalue) % 10}`}>
                             <Lit value={subvalue} sourcePath={sourcePath} inline={inline} depth={depth + 1} />
                         </li>
                     ))}
