@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "bdd": "npx jest -i --watch --no-cache",
-    "build": "npx rollup --config rollup.config.js --environment BUILD:production",
+    "mkdir": "mkdir -p '/Users/zhaihao/Documents/ORISON/.obsidian/plugins/dataview'",
+    "build": "npx rollup --config rollup.config.js --environment BUILD:production && cp styles.css manifest.json build/main.js '/Users/zhaihao/Documents/ORISON/.obsidian/plugins/dataview'",
     "check-format": "npx prettier --check src",
     "dev": "npx rollup --config rollup.config.js -w",
     "format": "npx prettier --write src",

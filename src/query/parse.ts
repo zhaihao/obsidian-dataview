@@ -15,7 +15,7 @@ import {
     WhereStep,
     Comment,
 } from "./query";
-import { Source, Sources } from "data-index/source";
+import { FolderSource, NegatedSource, Source, Sources } from "data-index/source";
 import { DEFAULT_QUERY_SETTINGS } from "settings";
 import { Result } from "api/result";
 
@@ -225,8 +225,24 @@ const optionalWhitespaceOrComment: P.Parser<string> = P.alt(P.whitespace, QUERY_
 export function parseQuery(text: string): Result<Query, string> {
     try {
         let query = QUERY_LANGUAGE.query.tryParse(text);
+        // @ts-ignore
+        let filters: string[] = app.vault?.config.userIgnoreFilters.concat();
+        query.source = addIgnoreFolder(query.source, filters);
         return Result.success(query);
     } catch (error) {
         return Result.failure("" + error);
+    }
+}
+
+function addIgnoreFolder(source: Source, folders: string[]): Source {
+    if (folders.length == 0) {
+        return source;
+    } else {
+        // @ts-ignore
+        let folder: string = folders.pop();
+        folder = folder.substring(0, folder.length - 1);
+        let folderSource: FolderSource = { folder: folder, type: "folder" };
+        let excludeSource: NegatedSource = { type: "negate", child: folderSource };
+        return addIgnoreFolder({ type: "binaryop", op: "&", left: source, right: excludeSource }, folders);
     }
 }
